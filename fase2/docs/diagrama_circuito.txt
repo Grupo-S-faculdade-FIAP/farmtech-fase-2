@@ -1,0 +1,82 @@
+# FarmTech Solutions - Diagrama do Circuito ESP32
+# Sistema de Irrigação Inteligente - Fase 2
+
+## Componentes Necessários:
+
+### Sensores de Entrada:
+1. Botão N (Nitrogênio) - GPIO 12 - Pull-up interno
+2. Botão P (Fósforo) - GPIO 14 - Pull-up interno
+3. Botão K (Potássio) - GPIO 27 - Pull-up interno
+4. Sensor LDR (pH) - GPIO 34 (ADC) - Resistor pull-down 10kΩ
+5. Sensor DHT22 (Umidade) - GPIO 26 - Resistor pull-up 4.7kΩ
+
+### Atuadores de Saída:
+1. Relé Azul (Bomba d'água) - GPIO 25 - LED indicador
+2. LED de Status - GPIO 2 - Resistor 220Ω
+
+## Conexões Elétricas:
+
+### Alimentação:
+- ESP32 Vin → 5V
+- ESP32 GND → GND comum
+- ESP32 3.3V → Para sensores que necessitam
+
+### Botões (NPK):
+Botão_N:
+- Pino 1 → GPIO 12
+- Pino 2 → GND
+
+Botão_P:
+- Pino 1 → GPIO 14
+- Pino 2 → GND
+
+Botão_K:
+- Pino 1 → GPIO 27
+- Pino 2 → GND
+
+### Sensor LDR:
+- Pino S → GPIO 34
+- Pino + → 3.3V
+- Pino - → GND (através de resistor 10kΩ)
+
+### Sensor DHT22:
+- Pino 1 (VCC) → 3.3V
+- Pino 2 (DATA) → GPIO 26 + resistor pull-up 4.7kΩ
+- Pino 4 (GND) → GND
+
+### Relé (Bomba):
+- Pino IN → GPIO 25
+- Pino VCC → 5V
+- Pino GND → GND
+- Pino NO/NC → Conexão da bomba (simulada pelo LED azul)
+
+### LED de Status:
+- Ânodo (+) → GPIO 2 + resistor 220Ω
+- Cátodo (-) → GND
+
+## Configuração no Wokwi:
+
+1. Adicione ESP32 Dev Module
+2. Configure os pinos conforme acima
+3. Adicione componentes visuais (LEDs coloridos para indicar status)
+4. Carregue o código sistema_irrigacao_inteligente.ino
+5. Inicie a simulação
+
+## Testes Sugeridos:
+
+1. **Teste básico**: Verificar se LEDs piscam corretamente
+2. **Teste botões**: Pressionar botões NPK e verificar Serial Monitor
+3. **Teste sensores**: Ajustar LDR e DHT22, verificar leituras
+4. **Teste relé**: Verificar se bomba liga/desliga nas condições certas
+5. **Teste integração**: Enviar dados climáticos via Serial
+
+## Notas Técnicas:
+
+- Todos os botões usam pull-up interno do ESP32
+- O LDR simula pH: escuro = ácido (pH baixo), claro = básico (pH alto)
+- O DHT22 mede umidade do ar (simulando umidade do solo)
+- O relé azul representa uma bomba d'água real
+- LED de status indica quando o sistema está ativo
+
+---
+FarmTech Solutions - Sistema de Irrigação Inteligente v2.0
