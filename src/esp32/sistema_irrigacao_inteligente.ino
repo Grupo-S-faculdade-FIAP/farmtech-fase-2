@@ -1,12 +1,7 @@
 #include <WiFi.h>
 #include <DHT.h>
-
-// Arquivo auxiliar para integração com dados meteorológicos
-// Este arquivo contém funções para processar dados da API WeatherAPI
-
 #include <Arduino.h>
 
-// Estrutura para armazenar dados meteorológicos
 struct DadosMeteorologicos {
   bool previsaoChuva;
   float chanceChuvaMedia;
@@ -15,18 +10,17 @@ struct DadosMeteorologicos {
   String condicaoAtual;
 };
 
-// Configurações de WiFi (para integração futura com API)
 const char* ssid = "SEU_WIFI_SSID";
 const char* password = "SEU_WIFI_PASSWORD";
 
-// Pinos dos componentes
-#define PIN_NITROGENIO 12    // Botão para Nitrogênio (N)
-#define PIN_FOSFORO 14       // Botão para Fósforo (P)
-#define PIN_POTASSIO 27      // Botão para Potássio (K)
-#define PIN_LDR 34           // Sensor LDR (simula pH)
-#define PIN_DHT 26           // Sensor DHT22 (umidade do solo)
-#define PIN_RELE 25          // Relé para bomba d'água
-#define PIN_LED_STATUS 2     // LED indicador de status
+// Definição dos pinos
+#define PIN_NITROGENIO 12
+#define PIN_FOSFORO 14
+#define PIN_POTASSIO 27
+#define PIN_LDR 34
+#define PIN_DHT 26
+#define PIN_RELE 25
+#define PIN_LED_STATUS 2
 
 // Configuração do DHT22
 #define DHTTYPE DHT22

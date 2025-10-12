@@ -1,13 +1,45 @@
 #!/usr/bin/env python3
-"""
-FarmTech Solutions - Integração Meteorológica Independente (Fase 2)
 
-Script Python autônomo para obter dados meteorológicos e formatar para ESP32.
-Não depende de nenhum código da Fase 1.
-"""
+import json
+from datetime import datetime
+import logging
 
-import subprocess
-import sys
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+def validar_coordenadas(latitude: float, longitude: float) -> None:
+    if not -90 <= latitude <= 90:
+        raise ValueError(f"Latitude {latitude} inválida. Deve estar entre -90 e 90.")
+    if not -180 <= longitude <= 180:
+        raise ValueError(f"Longitude {longitude} inválida. Deve estar entre -180 e 180.")
+
+def obter_dados_meteorologicos(latitude: float, longitude: float) -> dict:
+    validar_coordenadas(latitude, longitude)
+    return {
+        "temperatura": 25.0,
+        "umidade": 65.0,
+        "chance_chuva": 30.0,
+        "condicao": "Parcialmente nublado",
+        "precipitacao_mm": 0.0
+    }
+
+def processar_previsao(dados: dict) -> bool:
+    """Decide se deve irrigar baseado nos dados meteorológicos."""
+    if not all(k in dados for k in ["temperatura", "umidade", "chance_chuva"]):
+        raise ValueError("Dados meteorológicos incompletos")
+        
+    # Critérios para não irrigar
+    if (dados["chance_chuva"] > 70 or  # Alta chance de chuva
+        dados.get("precipitacao_mm", 0) > 5 or  # Previsão de chuva significativa
+        dados["umidade"] > 80):  # Solo já está úmido
+        return False
+    
+    # Critérios para irrigar
+    if (dados["umidade"] < 60 or  # Solo muito seco
+        dados["temperatura"] > 30):  # Temperatura alta
+        return True
+        
+    return False
 import os
 import json
 from datetime import datetime

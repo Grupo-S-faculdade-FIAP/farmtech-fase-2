@@ -1,27 +1,18 @@
 #!/usr/bin/env Rscript
 
-# FarmTech Solutions - Análise Estatística da Irrigação
-# Este script analisa dados de sensores para decidir sobre irrigação usando R
-
-# Configurar mirror do CRAN
 r <- getOption("repos")
 r["CRAN"] <- "https://cloud.r-project.org/"
 options(repos = r)
 
-# Carregar bibliotecas base (sem dependências externas para compatibilidade)
-# library(stats) # Já carregada por padrão
-
 cat("FarmTech Solutions - Análise Estatística da Irrigação\n")
 cat("====================================================\n\n")
 
-# Função para simular dados de sensores (em produção, estes viriam do ESP32)
 gerar_dados_simulados <- function(n_amostras = 100) {
-  # Simular dados realistas de sensores
   dados <- data.frame(
-    timestamp = Sys.time() + seq(0, n_amostras-1) * 3600, # A cada hora
-    umidade = rnorm(n_amostras, mean = 65, sd = 15), # Umidade %
-    pH = rnorm(n_amostras, mean = 6.5, sd = 0.8),     # pH do solo
-    temperatura = rnorm(n_amostras, mean = 25, sd = 5), # Temperatura °C
+    timestamp = Sys.time() + seq(0, n_amostras-1) * 3600,
+    umidade = rnorm(n_amostras, mean = 65, sd = 15),
+    pH = rnorm(n_amostras, mean = 6.5, sd = 0.8),
+    temperatura = rnorm(n_amostras, mean = 25, sd = 5),
     nitrogenio = sample(c(0, 1), n_amostras, replace = TRUE, prob = c(0.3, 0.7)),
     fosforo = sample(c(0, 1), n_amostras, replace = TRUE, prob = c(0.4, 0.6)),
     potassio = sample(c(0, 1), n_amostras, replace = TRUE, prob = c(0.2, 0.8)),
