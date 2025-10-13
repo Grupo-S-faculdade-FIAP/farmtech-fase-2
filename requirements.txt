@@ -1,0 +1,39 @@
+# FarmTech Solutions - Sistema de Irrigação Inteligente
+# Dependências Python para o projeto
+
+# Requisitos mínimos
+# Python >= 3.8
+
+# Nota: Este projeto utiliza apenas bibliotecas padrão do Python
+# Nenhuma biblioteca externa é necessária para a funcionalidade básica
+
+# Se desejar adicionar funcionalidades extras no futuro, considere:
+# requests>=2.31.0    # Para chamadas HTTP diretas (alternativa ao script R)
+# python-dotenv>=1.0.0  # Para gerenciar variáveis de ambiente
+# pyserial>=3.5        # Para comunicação serial direta com ESP32
+
+# Bibliotecas usadas (já incluídas no Python padrão):
+# - subprocess: Para executar scripts R
+# - os: Para manipulação de arquivos e caminhos
+# - json: Para parsing de dados JSON
+# - datetime: Para manipulação de datas e horas
+# - logging: Para sistema de logs
+
+# Para desenvolvimento e testes:
+# pytest>=7.4.0        # Framework de testes
+# pytest-cov>=4.1.0    # Cobertura de testes
+# black>=23.7.0        # Formatação de código
+# flake8>=6.1.0        # Linter para Python
+# mypy>=1.5.0          # Type checking
+
+# Para executar testes:
+# pip install pytest pytest-cov
+# pytest src/tests/
+
+# Para formatação de código:
+# pip install black
+# black src/
+
+# Para verificar estilo de código:
+# pip install flake8
+# flake8 src/

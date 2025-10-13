@@ -1,4 +1,4 @@
-#include <WiFi.h>
+// #include <WiFi.h>  // Comentado - não necessário para simulação
 #include <DHT.h>
 #include <Arduino.h>
 
@@ -10,8 +10,8 @@ struct DadosMeteorologicos {
   String condicaoAtual;
 };
 
-const char* ssid = "SEU_WIFI_SSID";
-const char* password = "SEU_WIFI_PASSWORD";
+// const char* ssid = "SEU_WIFI_SSID";        // Comentado - não necessário para simulação
+// const char* password = "SEU_WIFI_PASSWORD"; // Comentado - não necessário para simulação
 
 // Definição dos pinos
 #define PIN_NITROGENIO 12
@@ -78,8 +78,8 @@ void setup() {
   Serial.printf("  Umidade: %.1f%% - %.1f%%\n", UMIDADE_IDEAL_MIN, UMIDADE_IDEAL_MAX);
   Serial.println("=========================================");
 
-  // Conectar ao WiFi (para futuras integrações)
-  conectarWiFi();
+  // Conexão WiFi desativada para simulação
+  // conectarWiFi();
 }
 
 void loop() {
@@ -114,6 +114,8 @@ void loop() {
   delay(500); // Pequeno delay para estabilidade
 }
 
+// Função WiFi comentada - não necessária para simulação
+/*
 void conectarWiFi() {
   Serial.print("Conectando ao WiFi...");
   WiFi.begin(ssid, password);
@@ -134,6 +136,7 @@ void conectarWiFi() {
   }
   Serial.println();
 }
+*/
 
 void lerBotoesNPK() {
   // Botões com pull-up - LOW quando pressionado
