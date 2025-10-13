@@ -1,387 +1,184 @@
-// #include <WiFi.h>  // Comentado - não necessário para simulação
-#include <DHT.h>
-#include <Arduino.h>
-
-struct DadosMeteorologicos {
-  bool previsaoChuva;
-  float chanceChuvaMedia;
-  float temperaturaMaxima;
-  float temperaturaMinima;
-  String condicaoAtual;
-};
-
-// const char* ssid = "SEU_WIFI_SSID";        // Comentado - não necessário para simulação
-// const char* password = "SEU_WIFI_PASSWORD"; // Comentado - não necessário para simulação
-
-// Definição dos pinos
-#define PIN_NITROGENIO 12
-#define PIN_FOSFORO 14
-#define PIN_POTASSIO 27
-#define PIN_LDR 34
-#define PIN_DHT 26
-#define PIN_RELE 25
-#define PIN_LED_STATUS 2
-
-// Configuração do DHT22
-#define DHTTYPE DHT22
-DHT dht(PIN_DHT, DHTTYPE);
-
-// Variáveis globais
-bool nitrogenioPresente = false;
-bool fosforoPresente = false;
-bool potassioPresente = false;
-float pH = 0.0;
-float umidadeSolo = 0.0;
-bool bombaLigada = false;
-
-// Parâmetros ideais para milho (cultura escolhida)
-const float PH_IDEAL_MIN = 5.8;
-const float PH_IDEAL_MAX = 7.0;
-const float UMIDADE_IDEAL_MIN = 60.0;
-const float UMIDADE_IDEAL_MAX = 80.0;
-
-// Variáveis para controle de tempo
-unsigned long ultimoLeituraDHT = 0;
-unsigned long ultimoLeituraLDR = 0;
-unsigned long ultimoControleIrrigacao = 0;
-const unsigned long INTERVALO_DHT = 2000;      // 2 segundos
-const unsigned long INTERVALO_LDR = 1000;      // 1 segundo
-const unsigned long INTERVALO_IRRIGACAO = 5000; // 5 segundos
-
-// Estrutura para dados meteorológicos
-DadosMeteorologicos dadosMeteorologicos;
-
-void setup() {
-  Serial.begin(115200);
-
-  // Configuração dos pinos
-  pinMode(PIN_NITROGENIO, INPUT_PULLUP);
-  pinMode(PIN_FOSFORO, INPUT_PULLUP);
-  pinMode(PIN_POTASSIO, INPUT_PULLUP);
-  pinMode(PIN_LDR, INPUT);
-  pinMode(PIN_RELE, OUTPUT);
-  pinMode(PIN_LED_STATUS, OUTPUT);
-
-  // Inicializar DHT22
-  dht.begin();
-
-  // Estado inicial da bomba (desligada)
-  digitalWrite(PIN_RELE, LOW);
-  digitalWrite(PIN_LED_STATUS, LOW);
-
-  Serial.println("=========================================");
-  Serial.println("FarmTech Solutions - Sistema de Irrigação");
-  Serial.println("=========================================");
-  Serial.println("Cultura: MILHO");
-  Serial.println("Parâmetros ideais:");
-  Serial.printf("  pH: %.1f - %.1f\n", PH_IDEAL_MIN, PH_IDEAL_MAX);
-  Serial.printf("  Umidade: %.1f%% - %.1f%%\n", UMIDADE_IDEAL_MIN, UMIDADE_IDEAL_MAX);
-  Serial.println("=========================================");
-
-  // Conexão WiFi desativada para simulação
-  // conectarWiFi();
-}
-
-void loop() {
-  unsigned long tempoAtual = millis();
-
-  // Leitura dos botões NPK
-  lerBotoesNPK();
-
-  // Leitura dos sensores com intervalos definidos
-  if (tempoAtual - ultimoLeituraDHT >= INTERVALO_DHT) {
-    lerUmidadeSolo();
-    ultimoLeituraDHT = tempoAtual;
-  }
-
-  if (tempoAtual - ultimoLeituraLDR >= INTERVALO_LDR) {
-    lerPH();
-    ultimoLeituraLDR = tempoAtual;
-  }
-
-  // Controle da irrigação
-  if (tempoAtual - ultimoControleIrrigacao >= INTERVALO_IRRIGACAO) {
-    controlarIrrigacao();
-    ultimoControleIrrigacao = tempoAtual;
-  }
-
-  // Processar dados recebidos via Serial (para integração com API)
-  processarDadosSerial();
-
-  // Exibir status no Serial Monitor
-  exibirStatus();
-
-  delay(500); // Pequeno delay para estabilidade
-}
-
-// Função WiFi comentada - não necessária para simulação
 /*
-void conectarWiFi() {
-  Serial.print("Conectando ao WiFi...");
-  WiFi.begin(ssid, password);
-
-  int tentativas = 0;
-  while (WiFi.status() != WL_CONNECTED && tentativas < 10) {
-    delay(1000);
-    Serial.print(".");
-    tentativas++;
-  }
-
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.println(" Conectado!");
-    Serial.print("IP: ");
-    Serial.println(WiFi.localIP());
-  } else {
-    Serial.println(" Falhou! Continuando sem WiFi...");
-  }
-  Serial.println();
-}
+  ESP32 (Wokwi) — Irrigador Automático (DHT22 + LDR módulo + Relé, NPK via Botões)
 */
 
-void lerBotoesNPK() {
-  // Botões com pull-up - LOW quando pressionado
-  nitrogenioPresente = !digitalRead(PIN_NITROGENIO);
-  fosforoPresente = !digitalRead(PIN_FOSFORO);
-  potassioPresente = !digitalRead(PIN_POTASSIO);
+#include <Arduino.h>
+#include <DHTesp.h>
+
+// =================== CONFIG GERAL ===================
+#define LOG_MS         1800
+#define EMA_ALPHA      0.20f
+
+#define ADC_MIN_CAL    800
+#define ADC_MAX_CAL    2500
+#define PH_MIN_USE     5.5f
+#define PH_MAX_USE     7.5f
+
+// =================== PINOS ===================
+const int BTN_K = 27;
+const int BTN_P = 26;
+const int BTN_N = 25;
+const int RELAY_PIN = 23;
+const bool RELAY_ACTIVE_HIGH = true;
+
+const int DHT_PIN = 21;
+const int LDR_AO  = 34;
+const int LDR_DO  = 32;
+
+// =================== PARÂMETROS ===================
+DHTesp dht;
+uint32_t DHT_MIN_INTERVAL_MS = 2000;
+const float HUM_THRESHOLD = 45.0f;
+const uint32_t DEBOUNCE_MS = 25;
+
+const float PH_MIN_IDEAL = 5.5f;
+const float PH_MAX_IDEAL = 7.5f;
+
+const float PH_OFFSET_N = +0.80f;
+const float PH_OFFSET_P = -0.60f;
+const float PH_OFFSET_K = +0.40f;
+
+// =================== ESTRUTURAS ===================
+struct Btn {
+  int pin;
+  int lastStable;
+  int lastRaw;
+  uint32_t lastChange;
+};
+
+Btn btnK = {BTN_K, HIGH, HIGH, 0};
+Btn btnP = {BTN_P, HIGH, HIGH, 0};
+Btn btnN = {BTN_N, HIGH, HIGH, 0};
+
+// =================== ESTADO ===================
+float lastHum = NAN, lastTemp = NAN;
+int   lastDhtStatus = -1;
+String lastDhtStatusStr = "N/A";
+uint32_t lastDhtMs = 0;
+uint8_t  dhtFailCount = 0;
+
+float ldrEma = NAN;
+bool  pumpOn = false;
+
+// =================== HELPERS ===================
+inline void relayWrite(bool on) {
+  digitalWrite(RELAY_PIN, RELAY_ACTIVE_HIGH ? (on ? HIGH : LOW)
+                                            : (on ? LOW  : HIGH));
 }
 
-void lerUmidadeSolo() {
-  float h = dht.readHumidity();
-  if (!isnan(h)) {
-    umidadeSolo = h;
-  } else {
-    Serial.println("Erro ao ler DHT22!");
-  }
+inline void updateButton(Btn& b) {
+  int raw = digitalRead(b.pin);
+  if (raw != b.lastRaw) { b.lastRaw = raw; b.lastChange = millis(); }
+  if (millis() - b.lastChange > DEBOUNCE_MS && b.lastStable != b.lastRaw)
+    b.lastStable = b.lastRaw;
 }
 
-void lerPH() {
-  // Leitura analógica do LDR (0-4095)
-  int leituraLDR = analogRead(PIN_LDR);
-
-  // Conversão para pH (0-14)
-  // Mapeando leitura analógica para escala de pH
-  // 0 = pH 0 (ácido forte), 4095 = pH 14 (básico forte)
-  pH = map(leituraLDR, 0, 4095, 0, 140) / 10.0;
-
-  // Ajuste fino para melhor controle
-  // Quando NPK muda, deve afetar o pH simulado
-  if (nitrogenioPresente && fosforoPresente && potassioPresente) {
-    // NPK completo tende a manter pH mais neutro
-    pH = constrain(pH, 6.0, 8.0);
-  } else if (!nitrogenioPresente && !fosforoPresente && !potassioPresente) {
-    // Sem NPK, solo pode ficar mais ácido
-    pH = constrain(pH, 4.0, 6.0);
-  }
+inline float mapLdrToPh(int adc) {
+  float t = (float)(adc - ADC_MIN_CAL) / (float)(ADC_MAX_CAL - ADC_MIN_CAL);
+  t = constrain(t, 0.0f, 1.0f);
+  float ph = PH_MIN_USE + t * (PH_MAX_USE - PH_MIN_USE);
+  return constrain(ph, 0.0f, 14.0f);
 }
 
-void controlarIrrigacao() {
-  // Lógica de decisão para irrigação do milho
-  bool precisaIrrigar = false;
-  String motivoIrrigacao = "";
-
-  // 1. Verificar umidade do solo
-  if (umidadeSolo < UMIDADE_IDEAL_MIN) {
-    precisaIrrigar = true;
-    motivoIrrigacao = "Umidade baixa";
-  }
-
-  // 2. Verificar pH
-  if (pH < PH_IDEAL_MIN || pH > PH_IDEAL_MAX) {
-    precisaIrrigar = true;
-    if (motivoIrrigacao != "") motivoIrrigacao += " + ";
-    motivoIrrigacao += "pH inadequado";
-  }
-
-  // 3. Verificar nutrientes NPK
-  if (!nitrogenioPresente || !fosforoPresente || !potassioPresente) {
-    precisaIrrigar = true;
-    if (motivoIrrigacao != "") motivoIrrigacao += " + ";
-    motivoIrrigacao += "NPK insuficiente";
-  }
-
-  // 4. Considerar previsão do tempo (se disponível)
-  if (!deveIrrigarComDadosMeteorologicos(dadosMeteorologicos)) {
-    precisaIrrigar = false;
-    motivoIrrigacao = "Condições meteorológicas desfavoráveis";
-  }
-
-  // 5. Ajustar parâmetros baseado na temperatura
-  float umidadeMinAjustada = UMIDADE_IDEAL_MIN;
-  float umidadeMaxAjustada = UMIDADE_IDEAL_MAX;
-  ajustarParametrosIrrigacao(dadosMeteorologicos, umidadeMinAjustada, umidadeMaxAjustada);
-
-  // Reavaliar umidade com parâmetros ajustados
-  if (precisaIrrigar && umidadeSolo >= umidadeMinAjustada) {
-    precisaIrrigar = false; // Condições adequadas após ajuste
-  }
-
-  // Controle da bomba
-  if (precisaIrrigar && !bombaLigada) {
-    ligarBomba();
-    Serial.print("BOMBA LIGADA - Motivo: ");
-    Serial.println(motivoIrrigacao);
-  } else if (!precisaIrrigar && bombaLigada) {
-    desligarBomba();
-    Serial.println("BOMBA DESLIGADA - Condições adequadas");
-  }
+inline float applyNpkOffsets(float phBase, int N, int P, int K) {
+  float ph = phBase + N * PH_OFFSET_N + P * PH_OFFSET_P + K * PH_OFFSET_K;
+  return constrain(ph, 0.0f, 14.0f);
 }
 
-void ligarBomba() {
-  digitalWrite(PIN_RELE, HIGH);
-  digitalWrite(PIN_LED_STATUS, HIGH);
-  bombaLigada = true;
+inline bool shouldIrrigate(int N, int P, int K, float ph, float hum) {
+  if (isnan(hum)) return false;
+  return (hum < HUM_THRESHOLD) && (ph >= PH_MIN_IDEAL && ph <= PH_MAX_IDEAL) && (N || P || K);
 }
 
-void desligarBomba() {
-  digitalWrite(PIN_RELE, LOW);
-  digitalWrite(PIN_LED_STATUS, LOW);
-  bombaLigada = false;
+inline void logResumo(int N, int P, int K, int ldrRaw, int ldrDig,
+                      float phBase, float phAdj, float hum, float temp) {
+  Serial.printf(
+    "N=%d P=%d K=%d | LDR AO=%4d DO=%d | pH=%.2f(%.2f) | T=%.1fC H=%.1f%% | RELÉ=%s\n",
+    N, P, K, ldrRaw, ldrDig, phAdj, phBase, temp, hum,
+    pumpOn ? "ON" : "OFF"
+  );
 }
 
-void exibirStatus() {
-  static unsigned long ultimoDisplay = 0;
-  if (millis() - ultimoDisplay >= 3000) { // Exibir a cada 3 segundos
-    Serial.println("\n=== STATUS DO SISTEMA ===");
-    Serial.printf("NPK - N:%s P:%s K:%s\n",
-                  nitrogenioPresente ? "OK" : "FALTA",
-                  fosforoPresente ? "OK" : "FALTA",
-                  potassioPresente ? "OK" : "FALTA");
-    Serial.printf("pH: %.1f (Ideal: %.1f-%.1f)\n", pH, PH_IDEAL_MIN, PH_IDEAL_MAX);
-    Serial.printf("Umidade: %.1f%% (Ideal: %.1f-%.1f%%)\n",
-                  umidadeSolo, UMIDADE_IDEAL_MIN, UMIDADE_IDEAL_MAX);
-    Serial.printf("Bomba: %s\n", bombaLigada ? "LIGADA" : "DESLIGADA");
+// =================== SETUP ===================
+void setup() {
+  Serial.begin(115200);
+  delay(200);
 
-    // Exibir dados meteorológicos se disponíveis
-    if (dadosMeteorologicos.condicaoAtual != "Desconhecido") {
-      Serial.printf("Condição: %s\n", dadosMeteorologicos.condicaoAtual.c_str());
-      Serial.printf("Temp: %.1f-%.1f°C, Chuva: %.1f%%\n",
-                    dadosMeteorologicos.temperaturaMinima,
-                    dadosMeteorologicos.temperaturaMaxima,
-                    dadosMeteorologicos.chanceChuvaMedia);
-    }
+  pinMode(BTN_K, INPUT_PULLUP);
+  pinMode(BTN_P, INPUT_PULLUP);
+  pinMode(BTN_N, INPUT_PULLUP);
+  pinMode(RELAY_PIN, OUTPUT);
+  relayWrite(false);
+  pinMode(LDR_AO, INPUT);
+  pinMode(LDR_DO, INPUT);
 
-    Serial.println("========================\n");
-    ultimoDisplay = millis();
-  }
+  analogReadResolution(12);
+  analogSetPinAttenuation(LDR_AO, ADC_11db);
+
+  pinMode(DHT_PIN, INPUT_PULLUP);
+  dht.setup(DHT_PIN, DHTesp::DHT22);
+  DHT_MIN_INTERVAL_MS = max<uint32_t>(dht.getMinimumSamplingPeriod(), 2000);
+
+  Serial.printf("DHT22 minInterval=%ums\n", DHT_MIN_INTERVAL_MS);
+  delay(2000);
+
+  Serial.println("=== Irrigador Automático Iniciado ===");
+  Serial.println("Mapeamento: N=25, P=26, K=27 | Relé=23 | DHT22=21 | LDR AO=34 DO=32");
 }
 
-// Função para analisar dados da API e determinar se há previsão de chuva
-// Recebe dados no formato JSON simplificado da nossa API R/Python
-DadosMeteorologicos analisarDadosMeteorologicos(String dadosAPI) {
-  DadosMeteorologicos dados;
+// =================== LOOP ===================
+void loop() {
+  updateButton(btnN);
+  updateButton(btnP);
+  updateButton(btnK);
+  int N = (btnN.lastStable == LOW);
+  int P = (btnP.lastStable == LOW);
+  int K = (btnK.lastStable == LOW);
 
-  // Valores padrão
-  dados.previsaoChuva = false;
-  dados.chanceChuvaMedia = 0.0;
-  dados.temperaturaMaxima = 25.0;
-  dados.temperaturaMinima = 15.0;
-  dados.condicaoAtual = "Desconhecido";
+  int ldrRaw = analogRead(LDR_AO);
+  int ldrDig = digitalRead(LDR_DO);
+  ldrEma = isnan(ldrEma) ? ldrRaw : EMA_ALPHA * ldrRaw + (1.0f - EMA_ALPHA) * ldrEma;
 
-  // Análise simplificada dos dados recebidos
-  // Formato esperado: "CHUVA:75;TEMP_MAX:28;TEMP_MIN:18;CONDICAO:Chuvoso"
+  float phBase = mapLdrToPh((int)roundf(ldrEma));
+  float phAdj  = applyNpkOffsets(phBase, N, P, K);
 
-  if (dadosAPI.indexOf("CHUVA:") != -1) {
-    int posInicio = dadosAPI.indexOf("CHUVA:") + 6;
-    int posFim = dadosAPI.indexOf(";", posInicio);
-    if (posFim == -1) posFim = dadosAPI.length();
-
-    String chanceStr = dadosAPI.substring(posInicio, posFim);
-    dados.chanceChuvaMedia = chanceStr.toFloat();
-    dados.previsaoChuva = (dados.chanceChuvaMedia > 30.0); // Chuva se > 30%
-  }
-
-  if (dadosAPI.indexOf("TEMP_MAX:") != -1) {
-    int posInicio = dadosAPI.indexOf("TEMP_MAX:") + 9;
-    int posFim = dadosAPI.indexOf(";", posInicio);
-    if (posFim == -1) posFim = dadosAPI.length();
-
-    String tempStr = dadosAPI.substring(posInicio, posFim);
-    dados.temperaturaMaxima = tempStr.toFloat();
-  }
-
-  if (dadosAPI.indexOf("TEMP_MIN:") != -1) {
-    int posInicio = dadosAPI.indexOf("TEMP_MIN:") + 9;
-    int posFim = dadosAPI.indexOf(";", posInicio);
-    if (posFim == -1) posFim = dadosAPI.length();
-
-    String tempStr = dadosAPI.substring(posInicio, posFim);
-    dados.temperaturaMinima = tempStr.toFloat();
-  }
-
-  if (dadosAPI.indexOf("CONDICAO:") != -1) {
-    int posInicio = dadosAPI.indexOf("CONDICAO:") + 8;
-    dados.condicaoAtual = dadosAPI.substring(posInicio);
-  }
-
-  return dados;
-}
-
-// Função para determinar se deve irrigar baseado em dados meteorológicos
-// Retorna true se deve irrigar, false se deve suspender
-bool deveIrrigarComDadosMeteorologicos(DadosMeteorologicos dados) {
-  // Lógica de decisão baseada em dados meteorológicos:
-  // 1. Se há previsão de chuva (>50% chance), não irrigar
-  // 2. Se temperatura muito alta (>35°C), pode precisar de mais água
-  // 3. Se temperatura muito baixa (<10°C), reduzir irrigação
-
-  if (dados.previsaoChuva && dados.chanceChuvaMedia > 50.0) {
-    return false; // Não irrigar se vai chover
-  }
-
-  if (dados.temperaturaMaxima > 35.0) {
-    return true; // Irrigar mais em dias muito quentes
-  }
-
-  if (dados.temperaturaMinima < 10.0) {
-    return false; // Reduzir irrigação em dias frios
-  }
-
-  // Condições normais
-  return true;
-}
-
-// Função para ajustar parâmetros de irrigação baseado no clima
-void ajustarParametrosIrrigacao(DadosMeteorologicos dados,
-                               float& umidadeIdealMin,
-                               float& umidadeIdealMax) {
-  // Ajustar umidade ideal baseada na temperatura
-  if (dados.temperaturaMaxima > 30.0) {
-    // Dias quentes: manter solo mais úmido
-    umidadeIdealMin = 70.0;
-    umidadeIdealMax = 85.0;
-  } else if (dados.temperaturaMinima < 15.0) {
-    // Dias frios: solo menos úmido
-    umidadeIdealMin = 55.0;
-    umidadeIdealMax = 75.0;
-  } else {
-    // Condições normais
-    umidadeIdealMin = 60.0;
-    umidadeIdealMax = 80.0;
-  }
-}
-
-// Função para exibir relatório meteorológico
-void exibirRelatorioMeteorologico(DadosMeteorologicos dados) {
-  Serial.println("\n=== DADOS METEOROLÓGICOS ===");
-  Serial.printf("Condição atual: %s\n", dados.condicaoAtual.c_str());
-  Serial.printf("Temperatura: %.1f°C - %.1f°C\n",
-                dados.temperaturaMinima, dados.temperaturaMaxima);
-  Serial.printf("Chance de chuva: %.1f%%\n", dados.chanceChuvaMedia);
-  Serial.printf("Previsão de chuva: %s\n",
-                dados.previsaoChuva ? "SIM" : "NÃO");
-  Serial.println("===========================\n");
-}
-
-// Função para receber dados via Serial (para integração manual com API)
-void processarDadosSerial() {
-  if (Serial.available() > 0) {
-    String dadosRecebidos = Serial.readStringUntil('\n');
-    dadosRecebidos.trim();
-
-    // Formato esperado: "CHUVA:75.5;TEMP_MAX:28;TEMP_MIN:18;CONDICAO:Chuvoso"
-    if (dadosRecebidos.length() > 0) {
-      dadosMeteorologicos = analisarDadosMeteorologicos(dadosRecebidos);
-      exibirRelatorioMeteorologico(dadosMeteorologicos);
+  float hum = NAN, temp = NAN;
+  uint32_t now = millis();
+  if (now - lastDhtMs >= DHT_MIN_INTERVAL_MS) {
+    lastDhtMs = now;
+    TempAndHumidity r = dht.getTempAndHumidity();
+    int status = dht.getStatus();
+    if (status == 0 && !isnan(r.humidity) && !isnan(r.temperature)) {
+      hum = r.humidity; temp = r.temperature;
+      dhtFailCount = 0;
+      lastHum = hum; lastTemp = temp; lastDhtStatus = 0;
+    } else {
+      dhtFailCount++;
+      lastDhtStatus = status;
+      if (dhtFailCount >= 5) {
+        Serial.println("DHT22: reconfigurando sensor...");
+        dht.setup(DHT_PIN, DHTesp::DHT22);
+        dhtFailCount = 0;
+      }
     }
   }
+
+  float humUse = !isnan(hum) ? hum : lastHum;
+  bool shouldOn = shouldIrrigate(N, P, K, phAdj, humUse);
+  if (shouldOn != pumpOn) {
+    pumpOn = shouldOn;
+    relayWrite(pumpOn);
+    Serial.printf("Relé -> %s | H=%.1f%% | pH=%.2f | NPK=%d%d%d\n",
+                  pumpOn ? "ON" : "OFF", humUse, phAdj, N, P, K);
+  }
+
+  static uint32_t lastLog = 0;
+  if (now - lastLog > LOG_MS) {
+    lastLog = now;
+    float hShow = !isnan(hum) ? hum : lastHum;
+    float tShow = !isnan(temp) ? temp : lastTemp;
+    logResumo(N, P, K, ldrRaw, ldrDig, phBase, phAdj, hShow, tShow);
+  }
+
+  delay(5);
 }

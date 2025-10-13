@@ -1,147 +1,183 @@
+/*
+  ESP32 (Wokwi) — Irrigador Automático (DHT22 + LDR módulo + Relé, NPK via Botões)
+*/
+
 #include <Arduino.h>
 #include <DHTesp.h>
 
-// --- Pinos (ajuste conforme seu hardware) ---
-const int BTN_K = 27;    // Botão K (INPUT_PULLUP: pressionado=LOW)
-const int BTN_P = 26;    // Botão P (INPUT_PULLUP: pressionado=LOW)
-const int BTN_N = 25;    // Botão N (INPUT_PULLUP: pressionado=LOW)
-const int RELAY_PIN = 23;               // Relé da bomba
-const bool RELAY_ACTIVE_HIGH = true;    // false se o relé for ativo em LOW
-const int DHT_PIN = 21;                 // DHT22 (DATA)
-const int LDR_AO  = 34;                 // LDR analógico
-const int LDR_DO  = 32;                 // LDR digital (opcional)
+// =================== CONFIG GERAL ===================
+#define LOG_MS         1800
+#define EMA_ALPHA      0.20f
 
-// --- Parâmetros ---
+#define ADC_MIN_CAL    800
+#define ADC_MAX_CAL    2500
+#define PH_MIN_USE     5.5f
+#define PH_MAX_USE     7.5f
+
+// =================== PINOS ===================
+const int BTN_K = 27;
+const int BTN_P = 26;
+const int BTN_N = 25;
+const int RELAY_PIN = 23;
+const bool RELAY_ACTIVE_HIGH = true;
+
+const int DHT_PIN = 21;
+const int LDR_AO  = 34;
+const int LDR_DO  = 32;
+
+// =================== PARÂMETROS ===================
 DHTesp dht;
-uint32_t DHT_MIN_INTERVAL_MS = 2000;    // Intervalo mínimo entre leituras do DHT
-const float HUM_THRESHOLD = 45.0;       // Liga a bomba se umidade < limiar
-const uint32_t DEBOUNCE_MS = 25;        // Debounce dos botões
+uint32_t DHT_MIN_INTERVAL_MS = 2000;
+const float HUM_THRESHOLD = 45.0f;
+const uint32_t DEBOUNCE_MS = 25;
 
-// --- Estrutura simples de botão com debounce ---
+const float PH_MIN_IDEAL = 5.5f;
+const float PH_MAX_IDEAL = 7.5f;
+
+const float PH_OFFSET_N = +0.80f;
+const float PH_OFFSET_P = -0.60f;
+const float PH_OFFSET_K = +0.40f;
+
+// =================== ESTRUTURAS ===================
 struct Btn {
   int pin;
   int lastStable;
   int lastRaw;
   uint32_t lastChange;
-  const char* name;
 };
 
-Btn btnK = {BTN_K, HIGH, HIGH, 0, "K(GPIO27)"};
-Btn btnP = {BTN_P, HIGH, HIGH, 0, "P(GPIO26)"};
-Btn btnN = {BTN_N, HIGH, HIGH, 0, "N(GPIO25)"};
+Btn btnK = {BTN_K, HIGH, HIGH, 0};
+Btn btnP = {BTN_P, HIGH, HIGH, 0};
+Btn btnN = {BTN_N, HIGH, HIGH, 0};
 
-// --- Saída para o relé com compatibilidade ativo ALTO/BAIXO ---
+// =================== ESTADO ===================
+float lastHum = NAN, lastTemp = NAN;
+int   lastDhtStatus = -1;
+String lastDhtStatusStr = "N/A";
+uint32_t lastDhtMs = 0;
+uint8_t  dhtFailCount = 0;
+
+float ldrEma = NAN;
+bool  pumpOn = false;
+
+// =================== HELPERS ===================
 inline void relayWrite(bool on) {
   digitalWrite(RELAY_PIN, RELAY_ACTIVE_HIGH ? (on ? HIGH : LOW)
                                             : (on ? LOW  : HIGH));
 }
 
-// --- Configuração de pinos ---
-inline void initPins() {
+inline void updateButton(Btn& b) {
+  int raw = digitalRead(b.pin);
+  if (raw != b.lastRaw) { b.lastRaw = raw; b.lastChange = millis(); }
+  if (millis() - b.lastChange > DEBOUNCE_MS && b.lastStable != b.lastRaw)
+    b.lastStable = b.lastRaw;
+}
+
+inline float mapLdrToPh(int adc) {
+  float t = (float)(adc - ADC_MIN_CAL) / (float)(ADC_MAX_CAL - ADC_MIN_CAL);
+  t = constrain(t, 0.0f, 1.0f);
+  float ph = PH_MIN_USE + t * (PH_MAX_USE - PH_MIN_USE);
+  return constrain(ph, 0.0f, 14.0f);
+}
+
+inline float applyNpkOffsets(float phBase, int N, int P, int K) {
+  float ph = phBase + N * PH_OFFSET_N + P * PH_OFFSET_P + K * PH_OFFSET_K;
+  return constrain(ph, 0.0f, 14.0f);
+}
+
+inline bool shouldIrrigate(int N, int P, int K, float ph, float hum) {
+  if (isnan(hum)) return false;
+  return (hum < HUM_THRESHOLD) && (ph >= PH_MIN_IDEAL && ph <= PH_MAX_IDEAL) && (N || P || K);
+}
+
+inline void logResumo(int N, int P, int K, int ldrRaw, int ldrDig,
+                      float phBase, float phAdj, float hum, float temp) {
+  Serial.printf(
+    "N=%d P=%d K=%d | LDR AO=%4d DO=%d | pH=%.2f(%.2f) | T=%.1fC H=%.1f%% | RELÉ=%s\n",
+    N, P, K, ldrRaw, ldrDig, phAdj, phBase, temp, hum,
+    pumpOn ? "ON" : "OFF"
+  );
+}
+
+// =================== SETUP ===================
+void setup() {
+  Serial.begin(115200);
+  delay(200);
+
   pinMode(BTN_K, INPUT_PULLUP);
   pinMode(BTN_P, INPUT_PULLUP);
   pinMode(BTN_N, INPUT_PULLUP);
   pinMode(RELAY_PIN, OUTPUT);
-  relayWrite(false);             // inicia bomba desligada
+  relayWrite(false);
   pinMode(LDR_AO, INPUT);
-  pinMode(LDR_DO, INPUT);        // opcional
-}
+  pinMode(LDR_DO, INPUT);
 
-// --- Debounce simples: atualiza estado estável ---
-inline void updateButton(Btn& b) {
-  int raw = digitalRead(b.pin);
-  if (raw != b.lastRaw) { b.lastRaw = raw; b.lastChange = millis(); }
-  if (millis() - b.lastChange > DEBOUNCE_MS && b.lastStable != b.lastRaw) {
-    b.lastStable = b.lastRaw;
-  }
-}
+  analogReadResolution(12);
+  analogSetPinAttenuation(LDR_AO, ADC_11db);
 
-void setup() {
-  Serial.begin(115200);
-  delay(200);
-  initPins();
-
-  pinMode(DHT_PIN, INPUT_PULLUP);       // ok com ou sem pull-up externo
+  pinMode(DHT_PIN, INPUT_PULLUP);
   dht.setup(DHT_PIN, DHTesp::DHT22);
   DHT_MIN_INTERVAL_MS = max<uint32_t>(dht.getMinimumSamplingPeriod(), 2000);
-  Serial.printf("DHT22: minInterval=%ums\n", DHT_MIN_INTERVAL_MS);
-  delay(2000);                          // warm-up rápido
 
-  Serial.println("Irrigador ESP32 pronto");
-  Serial.println("N=GPIO25 P=GPIO26 K=GPIO27 | Rele=GPIO23 | DHT22=GPIO21 | LDR AO=34 DO=32");
+  Serial.printf("DHT22 minInterval=%ums\n", DHT_MIN_INTERVAL_MS);
+  delay(2000);
+
+  Serial.println("=== Irrigador Automático Iniciado ===");
+  Serial.println("Mapeamento: N=25, P=26, K=27 | Relé=23 | DHT22=21 | LDR AO=34 DO=32");
 }
 
-// --- Loop ---
-uint32_t lastDhtMs = 0;
-uint8_t  dhtFailCount = 0;
-
+// =================== LOOP ===================
 void loop() {
-  // 1) Debounce e estados NPK (1=pressionado)
   updateButton(btnN);
   updateButton(btnP);
   updateButton(btnK);
-  const int N = (btnN.lastStable == LOW) ? 1 : 0;
-  const int P = (btnP.lastStable == LOW) ? 1 : 0;
-  const int K = (btnK.lastStable == LOW) ? 1 : 0;
+  int N = (btnN.lastStable == LOW);
+  int P = (btnP.lastStable == LOW);
+  int K = (btnK.lastStable == LOW);
 
-  // 2) LDR
   int ldrRaw = analogRead(LDR_AO);
   int ldrDig = digitalRead(LDR_DO);
+  ldrEma = isnan(ldrEma) ? ldrRaw : EMA_ALPHA * ldrRaw + (1.0f - EMA_ALPHA) * ldrEma;
 
-  // 3) DHT22 com respeito ao intervalo + retry simples
+  float phBase = mapLdrToPh((int)roundf(ldrEma));
+  float phAdj  = applyNpkOffsets(phBase, N, P, K);
+
   float hum = NAN, temp = NAN;
   uint32_t now = millis();
   if (now - lastDhtMs >= DHT_MIN_INTERVAL_MS) {
     lastDhtMs = now;
     TempAndHumidity r = dht.getTempAndHumidity();
-    int status = dht.getStatus(); // 0=OK
+    int status = dht.getStatus();
     if (status == 0 && !isnan(r.humidity) && !isnan(r.temperature)) {
-      hum  = r.humidity;
-      temp = r.temperature;
+      hum = r.humidity; temp = r.temperature;
       dhtFailCount = 0;
+      lastHum = hum; lastTemp = temp; lastDhtStatus = 0;
     } else {
       dhtFailCount++;
-      Serial.printf("[DHT22] Erro(%u): %s\n", dhtFailCount, dht.getStatusString());
-      delay(100);
-      r = dht.getTempAndHumidity();
-      status = dht.getStatus();
-      if (status == 0 && !isnan(r.humidity) && !isnan(r.temperature)) {
-        hum  = r.humidity;
-        temp = r.temperature;
-        dhtFailCount = 0;
-      } else if (dhtFailCount >= 5) {
-        Serial.println("[DHT22] Reconfigurando...");
+      lastDhtStatus = status;
+      if (dhtFailCount >= 5) {
+        Serial.println("DHT22: reconfigurando sensor...");
         dht.setup(DHT_PIN, DHTesp::DHT22);
         dhtFailCount = 0;
-        delay(50);
       }
     }
   }
 
-  // 4) Controle do relé por umidade (com log)
-  static bool pumpOn = false;
-  if (!isnan(hum)) {
-    bool shouldOn = hum < HUM_THRESHOLD;
-    if (shouldOn != pumpOn) {
-      pumpOn = shouldOn;
-      relayWrite(pumpOn);
-      Serial.printf("[RELE GPIO%02d] %s | H=%.1f%% (limiar=%.1f%%)\n",
-                    RELAY_PIN, pumpOn ? "LIGADO" : "DESLIGADO", hum, HUM_THRESHOLD);
-    }
+  float humUse = !isnan(hum) ? hum : lastHum;
+  bool shouldOn = shouldIrrigate(N, P, K, phAdj, humUse);
+  if (shouldOn != pumpOn) {
+    pumpOn = shouldOn;
+    relayWrite(pumpOn);
+    Serial.printf("Relé -> %s | H=%.1f%% | pH=%.2f | NPK=%d%d%d\n",
+                  pumpOn ? "ON" : "OFF", humUse, phAdj, N, P, K);
   }
 
-  // 5) Log consolidado periódico
   static uint32_t lastLog = 0;
-  if (now - lastLog > 1000) {
+  if (now - lastLog > LOG_MS) {
     lastLog = now;
-    Serial.printf("[N=%d P=%d K=%d] [LDR AO=%4d DO=%d] ", N, P, K, ldrRaw, ldrDig);
-    int status = dht.getStatus();
-    if (status == 0) {
-      TempAndHumidity r = dht.getTempAndHumidity();
-      Serial.printf("[DHT22 T=%.1fC H=%.1f%%]\n", r.temperature, r.humidity);
-    } else {
-      Serial.printf("[DHT22 %s]\n", dht.getStatusString());
-    }
+    float hShow = !isnan(hum) ? hum : lastHum;
+    float tShow = !isnan(temp) ? temp : lastTemp;
+    logResumo(N, P, K, ldrRaw, ldrDig, phBase, phAdj, hShow, tShow);
   }
 
   delay(5);
