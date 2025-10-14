@@ -11,7 +11,7 @@
 5. Sensor DHT22 (Umidade) - GPIO 26 - Resistor pull-up 4.7kΩ
 
 ### Atuadores de Saída:
-1. Relé Azul (Bomba d'água) - GPIO 25 - LED indicador
+1. Relê Azul (Bomba d'água) - GPIO 25 - LED indicador
 2. LED de Status - GPIO 2 - Resistor 220Ω
 
 ## Conexões Elétricas:
@@ -44,7 +44,7 @@ Botão_K:
 - Pino 2 (DATA) → GPIO 26 + resistor pull-up 4.7kΩ
 - Pino 4 (GND) → GND
 
-### Relé (Bomba):
+### Relê (Bomba):
 - Pino IN → GPIO 25
 - Pino VCC → 5V
 - Pino GND → GND
@@ -67,7 +67,7 @@ Botão_K:
 1. **Teste básico**: Verificar se LEDs piscam corretamente
 2. **Teste botões**: Pressionar botões NPK e verificar Serial Monitor
 3. **Teste sensores**: Ajustar LDR e DHT22, verificar leituras
-4. **Teste relé**: Verificar se bomba liga/desliga nas condições certas
+4. **Teste relê**: Verificar se bomba liga/desliga nas condições certas
 5. **Teste integração**: Enviar dados climáticos via Serial
 
 ## Notas Técnicas:
@@ -75,7 +75,7 @@ Botão_K:
 - Todos os botões usam pull-up interno do ESP32
 - O LDR simula pH: escuro = ácido (pH baixo), claro = básico (pH alto)
 - O DHT22 mede umidade do ar (simulando umidade do solo)
-- O relé azul representa uma bomba d'água real
+- O relê azul representa uma bomba d'água real
 - LED de status indica quando o sistema está ativo
 
 ---

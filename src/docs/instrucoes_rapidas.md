@@ -1,19 +1,16 @@
 # FarmTech Solutions - Fase 2
 ## Instruções Rápidas para Sistema de Irrigação ESP32
-
 ### 🚀 Início Rápido
-
 1. **Acesse o Wokwi.com** e crie um novo projeto ESP32
 2. **Adicione os componentes**:
-   - 3 Botões (GPIO 12, 14, 27)
-   - Sensor LDR (GPIO 34)
-   - Sensor DHT22 (GPIO 26)
-   - Relé azul (GPIO 25)
-   - LED (GPIO 2)
+	- 3 Botões (GPIO 12, 14, 27)
+	- Sensor LDR (GPIO 34)
+	- Sensor DHT22 (GPIO 26)
+	- Relê azul (GPIO 25)
+	- LED (GPIO 2)
 
 3. **Cole o código** do arquivo `sistema_irrigacao_inteligente.ino`
 4. **Clique em "Start Simulation"**
-
 ### 🎮 Como Testar
 
 #### Cenário 1: Irrigação por Umidade Baixa
@@ -60,9 +57,10 @@ CHUVA:75.5;TEMP_MAX:28;TEMP_MIN:18;CONDICAO:Chuvoso
 
 - **Ajuste dinâmico** baseado na temperatura
 - **Suspensão por chuva** (>50% de chance)
-- **Correlação estatística** entre variáveis
+- **Correlações estatísticas** entre variáveis
 - **Previsão de tendências** usando regressão linear
 
 ---
 
 **FarmTech Solutions © 2025** - Sistema de Irrigação Inteligente
+(Conteúdo original será movido da pasta fase2/docs)
