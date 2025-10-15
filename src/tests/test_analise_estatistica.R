@@ -7,9 +7,16 @@ r <- getOption("repos")
 r["CRAN"] <- "https://cloud.r-project.org/"
 options(repos = r)
 
-source_path <- "../esp32/analise_estatistica_irrigacao.R"
-if (file.exists(source_path)) {
-  source(source_path)
+# Definir modo de teste para evitar execução automática
+TEST_MODE <- TRUE
+
+# Carregar funções do script principal
+if (file.exists("../esp32/analise_estatistica_irrigacao.R")) {
+  source("../esp32/analise_estatistica_irrigacao.R")
+} else if (file.exists("src/esp32/analise_estatistica_irrigacao.R")) {
+  source("src/esp32/analise_estatistica_irrigacao.R")
+} else {
+  stop("Não foi possível encontrar o arquivo analise_estatistica_irrigacao.R")
 }
 
 testes_passados <- 0

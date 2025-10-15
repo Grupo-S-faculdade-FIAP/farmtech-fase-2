@@ -1,11 +1,5 @@
-/*
-  ESP32 (Wokwi) — Irrigador Automático (DHT22 + LDR módulo + Relé, NPK via Botões)
-*/
-
 #include <Arduino.h>
 #include <DHTesp.h>
-
-// =================== CONFIG GERAL ===================
 #define LOG_MS         1800
 #define EMA_ALPHA      0.20f
 
@@ -14,7 +8,6 @@
 #define PH_MIN_USE     5.5f
 #define PH_MAX_USE     7.5f
 
-// =================== PINOS ===================
 const int BTN_K = 27;
 const int BTN_P = 26;
 const int BTN_N = 25;
@@ -25,20 +18,16 @@ const int DHT_PIN = 21;
 const int LDR_AO  = 34;
 const int LDR_DO  = 32;
 
-// =================== PARÂMETROS ===================
 DHTesp dht;
 uint32_t DHT_MIN_INTERVAL_MS = 2000;
 const float HUM_THRESHOLD = 45.0f;
 const uint32_t DEBOUNCE_MS = 25;
-
 const float PH_MIN_IDEAL = 5.5f;
 const float PH_MAX_IDEAL = 7.5f;
-
 const float PH_OFFSET_N = +0.80f;
 const float PH_OFFSET_P = -0.60f;
 const float PH_OFFSET_K = +0.40f;
 
-// =================== ESTRUTURAS ===================
 struct Btn {
   int pin;
   int lastStable;
@@ -50,24 +39,19 @@ Btn btnK = {BTN_K, HIGH, HIGH, 0};
 Btn btnP = {BTN_P, HIGH, HIGH, 0};
 Btn btnN = {BTN_N, HIGH, HIGH, 0};
 
-// =================== ESTADO ===================
 float lastHum = NAN, lastTemp = NAN;
 int   lastDhtStatus = -1;
 String lastDhtStatusStr = "N/A";
 uint32_t lastDhtMs = 0;
 uint8_t  dhtFailCount = 0;
-
 float ldrEma = NAN;
 bool  pumpOn = false;
 
-// =================== DADOS METEOROLÓGICOS ===================
 float chanceChuva = 0.0;
 float tempMax = 0.0;
 float tempMin = 0.0;
 String condicaoClimatica = "";
 bool dadosMeteorologicosRecebidos = false;
-
-// =================== HELPERS ===================
 inline void relayWrite(bool on) {
   digitalWrite(RELAY_PIN, RELAY_ACTIVE_HIGH ? (on ? HIGH : LOW)
                                             : (on ? LOW  : HIGH));
@@ -116,8 +100,6 @@ String extrairTexto(String dados, String chave) {
   return dados.substring(inicio, fim);
 }
 
-
-
 void verificarDadosMeteorologicos() {
   if (Serial.available()) {
     String dadosRecebidos = Serial.readStringUntil('\n');
@@ -165,7 +147,6 @@ inline void logResumo(int N, int P, int K, int ldrRaw, int ldrDig,
   );
 }
 
-// =================== SETUP ===================
 void setup() {
   Serial.begin(115200);
   delay(200);
@@ -194,9 +175,7 @@ void setup() {
   Serial.println("Formato: CHUVA:XX.X;TEMP_MAX:XX.X;TEMP_MIN:XX.X;CONDICAO:texto");
 }
 
-// =================== LOOP ===================
 void loop() {
-  // Verificar dados meteorológicos via Serial
   verificarDadosMeteorologicos();
   
   updateButton(btnN);

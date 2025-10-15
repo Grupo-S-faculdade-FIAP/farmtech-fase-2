@@ -1,33 +1,6 @@
 #!/usr/bin/env Rscript
 
-# ============================================================================
-# FarmTech Solutions - Utilitário de Tradução Climática
-# ============================================================================
-# Módulo dedicado para tradução das condições climáticas da WeatherAPI
-# para português brasileiro, centralizando esta funcionalidade para
-# reutilização em diferentes partes do sistema.
-#
-# Autor: FarmTech Solutions
-# Data: 2025
-# Versão: 1.0
-# ============================================================================
-
-#' Traduz condições climáticas da WeatherAPI para português brasileiro
-#' 
-#' Esta função contém um dicionário completo das condições climáticas
-#' retornadas pela WeatherAPI.com (códigos 1000-1282) e suas respectivas
-#' traduções para português brasileiro.
-#' 
-#' @param condicao_en String com a condição climática em inglês
-#' @return String com a condição traduzida para português, ou a condição
-#'         original se não houver tradução disponível
-#' @examples 
-#' traduzir_condicao_climatica("Partly cloudy")  # "Parcialmente nublado"
-#' traduzir_condicao_climatica("Heavy rain")     # "Chuva forte"
-#' traduzir_condicao_climatica("Sunny")          # "Ensolarado"
 traduzir_condicao_climatica <- function(condicao_en) {
-  
-  # Validação de entrada
   if (is.null(condicao_en) || is.na(condicao_en) || condicao_en == "") {
     return("Indefinido")
   }

@@ -1,17 +1,5 @@
 #!/usr/bin/env python3
-"""
-FarmTech Solutions - Integração Meteorológica Independente
-Sistema de integração entre ESP32 e API meteorológica via script R
-
-Este módulo fornece funções para:
-- Executar script R de API meteorológica
-- Processar dados meteorológicos
-- Formatar dados para envio ao ESP32
-- Decidir sobre necessidade de irrigação baseado no clima
-
-Autor: FarmTech Solutions
-Data: 2025
-"""
+# -*- coding: utf-8 -*-
 
 import subprocess
 import os
@@ -20,7 +8,11 @@ import json
 from datetime import datetime
 import logging
 
-# Adicionar o diretório utils ao path para importar o módulo de tradução
+# Configurar encoding para emojis no Windows
+if sys.platform.startswith('win'):
+    import codecs
+    sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict')
+
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "utils"))
 
 try:
@@ -33,14 +25,12 @@ except ImportError:
     logger = logging.getLogger(__name__)
     logger.warning("Módulo de tradução não disponível, usando script R para tradução")
 
-# Configuração de logging aprimorada
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 logger = logging.getLogger(__name__)
-
 
 def validar_coordenadas(latitude: float, longitude: float) -> None:
     """

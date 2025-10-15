@@ -1,34 +1,28 @@
 #!/usr/bin/env Rscript
 
-# FarmTech Solutions - API Meteorológica Independente (Fase 2)
-# Script autônomo para obter dados meteorológicos para o ESP32
-
-# Configurar mirror do CRAN
 r <- getOption("repos")
 r["CRAN"] <- "https://cloud.r-project.org/"
 options(repos = r)
 
-# Carregar bibliotecas necessárias
 if (!require("httr")) install.packages("httr")
 if (!require("jsonlite")) install.packages("jsonlite")
 
 library(httr)
 library(jsonlite)
-
-# Carregar módulo de tradução climática
-source(file.path("..", "utils", "traducao_climatica.R"))
+if (file.exists("src/utils/traducao_climatica.R")) {
+  # Executando da raiz do projeto
+  source("src/utils/traducao_climatica.R")
+} else {
+  # Executando de dentro da pasta src/esp32/
+  source(file.path("..", "utils", "traducao_climatica.R"))
+}
 
 consultar_clima_independente <- function(cidade = "São Paulo", pais = "BR", dias = 3) {
-  # API key para WeatherAPI (mesma da Fase 1)
   api_key <- "69c06b5e946f4906ba6200400251309"
-
-  # Construir URL
   query <- paste0(cidade, ",", pais)
   query_encoded <- URLencode(query)
   url <- paste0("https://api.weatherapi.com/v1/forecast.json?key=",
                api_key, "&q=", query_encoded, "&days=", dias)
-
-  # Fazer requisição
   response <- tryCatch({
     GET(url)
   }, error = function(e) {
