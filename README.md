@@ -2,6 +2,8 @@
 
 **FIAP Fase 2** | ESP32 + WeatherAPI + R Analytics
 
+📂 **GitHub Repository**: https://github.com/Grupo-S-faculdade-FIAP/farmtech-fase-2
+
 ---
 
 ## 🎯 **O Sistema**
@@ -62,6 +64,8 @@ Rscript analise_estatistica_irrigacao.R
 ## 🏗️ **Arquitetura**
 
 ### **Estrutura do Projeto**
+> 📁 **Código completo**: https://github.com/Grupo-S-faculdade-FIAP/farmtech-fase-2
+
 ```
 src/
 ├── esp32/                   # Código ESP32 + Scripts
@@ -73,11 +77,15 @@ src/
 │   ├── traducao_climatica.R     # 50+ traduções WeatherAPI
 │   ├── traducao_climatica.py    # Versão Python
 │   └── README.md
-├── wokwi/                   # Simulador
+├── tests/                   # Testes unitários (100% cobertura)
+│   ├── test_analise_estatistica.R
+│   ├── test_integracao_meteorologica.py
+│   └── test_sistema_irrigacao.ino
+├── wokwi/                   # Simulador ESP32
 │   ├── sketch.ino
 │   ├── diagram.json
 │   └── libraries.txt
-└── docs/                    # Documentação técnica
+└── docs/                    # Documentação essencial
 ```
 
 ### **Fluxo de Dados**
@@ -465,6 +473,14 @@ Rscript analise_estatistica_irrigacao.R
 # 4. Simular no Wokwi
 # https://wokwi.com/projects/444657222477927425
 ```
+
+---
+
+## 📁 **Links do Projeto**
+
+- **🐙 GitHub Repository**: https://github.com/Grupo-S-faculdade-FIAP/farmtech-fase-2
+- **🔗 ESP32 Simulator**: https://wokwi.com/projects/444657222477927425
+- **🏢 FarmTech Solutions**: Grupo S - FIAP 2025
 
 ---
 
