@@ -4,14 +4,14 @@
 ## Componentes Necessários:
 
 ### Sensores de Entrada:
-1. Botão N (Nitrogênio) - GPIO 12 - Pull-up interno
-2. Botão P (Fósforo) - GPIO 14 - Pull-up interno
+1. Botão N (Nitrogênio) - GPIO 25 - Pull-up interno
+2. Botão P (Fósforo) - GPIO 26 - Pull-up interno  
 3. Botão K (Potássio) - GPIO 27 - Pull-up interno
-4. Sensor LDR (pH) - GPIO 34 (ADC) - Resistor pull-down 10kΩ
-5. Sensor DHT22 (Umidade) - GPIO 26 - Resistor pull-up 4.7kΩ
+4. Sensor LDR (pH) - GPIO 34 (ADC), GPIO 32 (Digital) - Resistor pull-down 10kΩ
+5. Sensor DHT22 (Umidade) - GPIO 21 - Resistor pull-up 4.7kΩ
 
 ### Atuadores de Saída:
-1. Relê Azul (Bomba d'água) - GPIO 25 - LED indicador
+1. Relé Azul (Bomba d'água) - GPIO 23 - LED indicador
 2. LED de Status - GPIO 2 - Resistor 220Ω
 
 ## Conexões Elétricas:
@@ -23,11 +23,11 @@
 
 ### Botões (NPK):
 Botão_N:
-- Pino 1 → GPIO 12
+- Pino 1 → GPIO 25
 - Pino 2 → GND
 
 Botão_P:
-- Pino 1 → GPIO 14
+- Pino 1 → GPIO 26
 - Pino 2 → GND
 
 Botão_K:
