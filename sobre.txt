@@ -89,36 +89,3 @@ Anexar ao README.MD as imagens do circuito da plataforma Wokwi.com que demonstre
 Anexar ao Git o código C/C++ desenvolvido no ESP32;
 Anexar os códigos do Programa Ir Além (opcionais 1 e/ou 2);
 Anexar ao Git o link de um vídeo de até 5 minutos postado no YouTube (sem listagem), demonstrando o funcionamento completo de seu projeto referente ao que foi solicitado aqui.
-
-
-GRUPO
-TRAZER GRUPO ANTERIOR
-Mínimo: 1 | Máximo: 5
-
-Participante (s)
-Procure por nomes ou RM dos participantes
-Caroline de Castro Correa
-
-castrocaroline11@gmail.com
-Envio
-
-Entrega pendente
-Avaliação
-
-Avaliação pendente
-Prazo de entrega
-Quarta-feira, 15 de Outubro de 2025, às 23h59
-
-Tempo Restante
-6 dias e 3 horas restantes
-
-Última modificação
--
-
-Grupo
-Grupo 56
-
-Integrantes do Grupo 56
-Caroline de Castro Correa
-castrocaroline11@gmail.com
-
