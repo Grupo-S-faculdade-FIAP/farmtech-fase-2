@@ -24,7 +24,7 @@ Sistema embarcado IoT para controle automatizado de irrigação agrícola inteli
 ## 📋 Pré-requisitos
 
 ### Para ESP32 (Obrigatório):
-- **Wokwi.com** (simulador online gratuito) - [Acesse aqui](https://wokwi.com)
+- **Wokwi.com** (simulador online gratuito) - [Acesse o projeto](https://wokwi.com/projects/444657222477927425)
 - ESP32 board no simulador
 - Componentes simulados: 3 botões, LDR, DHT22, relé azul
 
@@ -59,7 +59,7 @@ LED Status             → GPIO 2
 ## ▶️ Como executar
 
 ### Passo 1: Sistema Básico
-1. Abra o arquivo `fase2/esp32/sistema_irrigacao_inteligente.ino`
+1. Abra o arquivo `src/esp32/sistema_irrigacao_inteligente.ino`
 2. Cole o código no editor do **Wokwi**
 3. Clique em **"Start Simulation"**
 4. Observe o sistema funcionando automaticamente
@@ -73,10 +73,10 @@ LED Status             → GPIO 2
 ### Passo 3: Integração Meteorológica (Opcional)
 ```bash
 # Opção 1: Script Python (recomendado)
-python fase2/esp32/integracao_meteorologica_independente.py
+python src/esp32/integracao_meteorologica_independente.py
 
 # Opção 2: Script R direto
-Rscript fase2/esp32/api_meteorologica_independente.R
+Rscript src/esp32/api_meteorologica_independente.R
 
 # Resultado: linha formatada como:
 # CHUVA:75.5;TEMP_MAX:28;TEMP_MIN:18;CONDICAO:Chuvoso
@@ -85,23 +85,28 @@ Rscript fase2/esp32/api_meteorologica_independente.R
 ### Passo 4: Análise Estatística (Opcional)
 ```bash
 # Análise estatística para decisão de irrigação
-Rscript fase2/esp32/analise_estatistica_irrigacao.R
+Rscript src/esp32/analise_estatistica_irrigacao.R
 ```
 
 ## 📁 Estrutura do Projeto
 
 ```
-trabalho1/
-├── 📁 fase2/                          # Sistema de Irrigação ESP32
-│   ├── 📁 esp32/                      # Código fonte
+trabalho-fase-2/
+├── 📁 src/                            # Código fonte do projeto
+│   ├── 📁 esp32/                      # Código fonte do ESP32
 │   │   ├── sistema_irrigacao_inteligente.ino    # Código principal ESP32
 │   │   ├── integracao_meteorologica.h          # Biblioteca auxiliar
 │   │   ├── integracao_meteorologica_independente.py  # Integração clima (Python)
 │   │   ├── api_meteorologica_independente.R    # API meteorológica (R)
 │   │   └── analise_estatistica_irrigacao.R     # Análise estatística (R)
+│   ├── 📁 docs/                       # Documentação técnica
+│   ├── 📁 tests/                      # Testes unitários
+│   │   ├── test_sistema_irrigacao.ino          # Testes do sistema ESP32
+│   │   ├── test_integracao_meteorologica.py    # Testes da integração Python
+│   │   └── test_analise_estatistica.R          # Testes da análise R
+│   ├── 📁 wokwi/                      # Configuração do simulador
 │   ├── 📁 imagens/                    # Capturas de tela do circuito
-│   ├── 📁 videos/                     # Vídeos demonstrativos
-│   └── 📁 docs/                       # Documentação adicional
+│   └── 📁 videos/                     # Vídeos demonstrativos
 └── README.md                          # Documentação completa
 ```
 
@@ -148,11 +153,12 @@ O script `analise_estatistica_irrigacao.R` implementa análise estatística avan
 ## 📦 Entregáveis
 
 ### Arquivos Principais
-- ✅ **Código ESP32**: `fase2/esp32/sistema_irrigacao_inteligente.ino`
-- ✅ **Biblioteca auxiliar**: `fase2/esp32/integracao_meteorologica.h`
-- ✅ **Integração Python independente**: `fase2/esp32/integracao_meteorologica_independente.py`
-- ✅ **API R independente**: `fase2/esp32/api_meteorologica_independente.R`
-- ✅ **Análise R**: `fase2/esp32/analise_estatistica_irrigacao.R`
+- ✅ **Código ESP32**: `src/esp32/sistema_irrigacao_inteligente.ino`
+- ✅ **Biblioteca auxiliar**: `src/esp32/integracao_meteorologica.h`
+- ✅ **Integração Python independente**: `src/esp32/integracao_meteorologica_independente.py`
+- ✅ **API R independente**: `src/esp32/api_meteorologica_independente.R`
+- ✅ **Análise R**: `src/esp32/analise_estatistica_irrigacao.R`
+- ✅ **Documentação técnica**: `src/docs/documentacao_tecnica_completa.md`
 - ✅ **README.md**: Documentação completa
 
 ### Funcionalidades Implementadas
@@ -164,7 +170,29 @@ O script `analise_estatistica_irrigacao.R` implementa análise estatística avan
 - ✅ **Integração climática**: Dados meteorológicos via Serial
 - ✅ **Análise estatística**: Scripts R para tomada de decisão
 
-## 🤝 Contribuição
+## � Testes Automatizados
+
+O projeto inclui testes automatizados para garantir a qualidade e funcionalidade:
+
+### Testes do Sistema ESP32
+```bash
+# Executado no ambiente Arduino com framework Unity
+# Os testes são executados através do Wokwi ou ambiente Arduino
+```
+
+### Testes da Integração Meteorológica (Python)
+```bash
+# Execute os testes Python
+python src/tests/test_integracao_meteorologica.py
+```
+
+### Testes da Análise Estatística (R)
+```bash
+# Execute os testes R 
+Rscript src/tests/test_analise_estatistica.R
+```
+
+## �🤝 Contribuição
 
 1. Fork o projeto
 2. Crie uma branch para sua feature (`git checkout -b feature/nova-feature`)
