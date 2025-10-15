@@ -15,6 +15,9 @@ if (!require("jsonlite")) install.packages("jsonlite")
 library(httr)
 library(jsonlite)
 
+# Carregar módulo de tradução climática
+source(file.path("..", "utils", "traducao_climatica.R"))
+
 consultar_clima_independente <- function(cidade = "São Paulo", pais = "BR", dias = 3) {
   # API key para WeatherAPI (mesma da Fase 1)
   api_key <- "69c06b5e946f4906ba6200400251309"
@@ -94,9 +97,15 @@ consultar_clima_independente <- function(cidade = "São Paulo", pais = "BR", dia
       }
     }
 
-    # Condição atual
+    # Condição atual (traduzir para português)
     if (!is.null(dados$current$condition$text)) {
-      resultado$condicao <- dados$current$condition$text
+      condicao_original <- dados$current$condition$text
+      resultado$condicao <- traduzir_condicao_climatica(condicao_original)
+      
+      # Log da tradução (apenas se foi traduzida)
+      if (resultado$condicao != condicao_original) {
+        cat(sprintf("Traduzindo: '%s' -> '%s'\n", condicao_original, resultado$condicao))
+      }
     }
 
   }, error = function(e) {
@@ -116,12 +125,12 @@ main <- function() {
 
   if (is.null(dados)) {
     cat("ERRO: Não foi possível obter dados meteorológicos\n")
-    # Dados de fallback para teste
+    # Dados de fallback para teste (já traduzidos)
     dados <- list(
       chance_chuva = 25.0,
       temp_max = 28.0,
       temp_min = 18.0,
-      condicao = "Parcialmente nublado"
+      condicao = traduzir_condicao_climatica("Partly cloudy")
     )
     cat("Usando dados de exemplo para teste...\n")
   }

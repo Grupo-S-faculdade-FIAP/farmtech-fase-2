@@ -116,6 +116,8 @@ String extrairTexto(String dados, String chave) {
   return dados.substring(inicio, fim);
 }
 
+
+
 void verificarDadosMeteorologicos() {
   if (Serial.available()) {
     String dadosRecebidos = Serial.readStringUntil('\n');

@@ -15,9 +15,23 @@ Data: 2025
 
 import subprocess
 import os
+import sys
 import json
 from datetime import datetime
 import logging
+
+# Adicionar o diretório utils ao path para importar o módulo de tradução
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "utils"))
+
+try:
+    from traducao_climatica import traduzir_condicao_climatica
+    TRADUTOR_DISPONIVEL = True
+    logger = logging.getLogger(__name__)
+    logger.info("Módulo de tradução climática carregado com sucesso")
+except ImportError:
+    TRADUTOR_DISPONIVEL = False
+    logger = logging.getLogger(__name__)
+    logger.warning("Módulo de tradução não disponível, usando script R para tradução")
 
 # Configuração de logging aprimorada
 logging.basicConfig(
