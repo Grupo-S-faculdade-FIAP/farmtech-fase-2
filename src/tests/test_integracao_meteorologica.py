@@ -7,12 +7,10 @@ from integracao_meteorologica_independente import obter_dados_meteorologicos, pr
 
 class TestIntegracaoMeteorologica(unittest.TestCase):
     def setUp(self):
-        """Configuração inicial para os testes"""
         self.latitude = -23.5505
         self.longitude = -46.6333
         
     def test_formato_dados_meteorologicos(self):
-        """Testa se os dados meteorológicos têm o formato correto"""
         try:
             dados = obter_dados_meteorologicos(self.latitude, self.longitude)
             self.assertIsInstance(dados, dict)
@@ -25,18 +23,16 @@ class TestIntegracaoMeteorologica(unittest.TestCase):
             print(f"❌ FALHA: Erro ao obter dados meteorológicos - {str(e)}")
             
     def test_validacao_parametros(self):
-        """Testa a validação de parâmetros de latitude e longitude"""
         try:
             with self.assertRaises(ValueError):
-                obter_dados_meteorologicos(91, 0)  # Latitude inválida
+                obter_dados_meteorologicos(91, 0)
             with self.assertRaises(ValueError):
-                obter_dados_meteorologicos(0, 181)  # Longitude inválida
+                obter_dados_meteorologicos(0, 181)
             print("✓ OK: Validação de parâmetros funcionando")
         except Exception as e:
             print(f"❌ FALHA: Erro na validação de parâmetros - {str(e)}")
             
     def test_processamento_previsao(self):
-        """Testa o processamento da previsão do tempo"""
         try:
             dados = {
                 'temperatura': 25,
