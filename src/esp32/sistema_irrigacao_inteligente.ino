@@ -1,11 +1,5 @@
-/*
-  ESP32 (Wokwi) — Irrigador Automático (DHT22 + LDR módulo + Relé, NPK via Botões)
-*/
-
 #include <Arduino.h>
 #include <DHTesp.h>
-
-// =================== CONFIG GERAL ===================
 #define LOG_MS         1800
 #define EMA_ALPHA      0.20f
 
@@ -14,7 +8,6 @@
 #define PH_MIN_USE     5.5f
 #define PH_MAX_USE     7.5f
 
-// =================== PINOS ===================
 const int BTN_K = 27;
 const int BTN_P = 26;
 const int BTN_N = 25;
@@ -25,20 +18,16 @@ const int DHT_PIN = 21;
 const int LDR_AO  = 34;
 const int LDR_DO  = 32;
 
-// =================== PARÂMETROS ===================
 DHTesp dht;
 uint32_t DHT_MIN_INTERVAL_MS = 2000;
 const float HUM_THRESHOLD = 45.0f;
 const uint32_t DEBOUNCE_MS = 25;
-
 const float PH_MIN_IDEAL = 5.5f;
 const float PH_MAX_IDEAL = 7.5f;
-
 const float PH_OFFSET_N = +0.80f;
 const float PH_OFFSET_P = -0.60f;
 const float PH_OFFSET_K = +0.40f;
 
-// =================== ESTRUTURAS ===================
 struct Btn {
   int pin;
   int lastStable;
@@ -50,17 +39,19 @@ Btn btnK = {BTN_K, HIGH, HIGH, 0};
 Btn btnP = {BTN_P, HIGH, HIGH, 0};
 Btn btnN = {BTN_N, HIGH, HIGH, 0};
 
-// =================== ESTADO ===================
 float lastHum = NAN, lastTemp = NAN;
 int   lastDhtStatus = -1;
 String lastDhtStatusStr = "N/A";
 uint32_t lastDhtMs = 0;
 uint8_t  dhtFailCount = 0;
-
 float ldrEma = NAN;
 bool  pumpOn = false;
 
-// =================== HELPERS ===================
+float chanceChuva = 0.0;
+float tempMax = 0.0;
+float tempMin = 0.0;
+String condicaoClimatica = "";
+bool dadosMeteorologicosRecebidos = false;
 inline void relayWrite(bool on) {
   digitalWrite(RELAY_PIN, RELAY_ACTIVE_HIGH ? (on ? HIGH : LOW)
                                             : (on ? LOW  : HIGH));
@@ -85,8 +76,65 @@ inline float applyNpkOffsets(float phBase, int N, int P, int K) {
   return constrain(ph, 0.0f, 14.0f);
 }
 
+// =================== FUNÇÕES METEOROLÓGICAS ===================
+float extrairValor(String dados, String chave) {
+  int inicio = dados.indexOf(chave);
+  if (inicio == -1) return 0.0;
+  
+  inicio += chave.length();
+  int fim = dados.indexOf(";", inicio);
+  if (fim == -1) fim = dados.length();
+  
+  String valorStr = dados.substring(inicio, fim);
+  return valorStr.toFloat();
+}
+
+String extrairTexto(String dados, String chave) {
+  int inicio = dados.indexOf(chave);
+  if (inicio == -1) return "";
+  
+  inicio += chave.length();
+  int fim = dados.indexOf(";", inicio);
+  if (fim == -1) fim = dados.length();
+  
+  return dados.substring(inicio, fim);
+}
+
+void verificarDadosMeteorologicos() {
+  if (Serial.available()) {
+    String dadosRecebidos = Serial.readStringUntil('\n');
+    dadosRecebidos.trim();
+    
+    if (dadosRecebidos.indexOf("CHUVA:") >= 0) {
+      chanceChuva = extrairValor(dadosRecebidos, "CHUVA:");
+      tempMax = extrairValor(dadosRecebidos, "TEMP_MAX:");
+      tempMin = extrairValor(dadosRecebidos, "TEMP_MIN:");
+      condicaoClimatica = extrairTexto(dadosRecebidos, "CONDICAO:");
+      dadosMeteorologicosRecebidos = true;
+      
+      Serial.println("📡 Dados meteorológicos recebidos!");
+      Serial.printf("🌧️ Chance de chuva: %.1f%%\n", chanceChuva);
+      Serial.printf("🌡️ Temperatura: %.1f°C - %.1f°C\n", tempMin, tempMax);
+      Serial.printf("☁️ Condição: %s\n", condicaoClimatica.c_str());
+      
+      if (chanceChuva > 50.0) {
+        Serial.println("💧 IRRIGAÇÃO SUSPENSA (alta chance de chuva)");
+      } else {
+        Serial.println("✅ Irrigação pode ser ativada se necessário");
+      }
+      Serial.println("--------------------------------------------------");
+    }
+  }
+}
+
 inline bool shouldIrrigate(int N, int P, int K, float ph, float hum) {
   if (isnan(hum)) return false;
+  
+  // Se há alta chance de chuva, suspender irrigação
+  if (dadosMeteorologicosRecebidos && chanceChuva > 50.0) {
+    return false;
+  }
+  
   return (hum < HUM_THRESHOLD) && (ph >= PH_MIN_IDEAL && ph <= PH_MAX_IDEAL) && (N || P || K);
 }
 
@@ -99,7 +147,6 @@ inline void logResumo(int N, int P, int K, int ldrRaw, int ldrDig,
   );
 }
 
-// =================== SETUP ===================
 void setup() {
   Serial.begin(115200);
   delay(200);
@@ -124,10 +171,13 @@ void setup() {
 
   Serial.println("=== Irrigador Automático Iniciado ===");
   Serial.println("Mapeamento: N=25, P=26, K=27 | Relé=23 | DHT22=21 | LDR AO=34 DO=32");
+  Serial.println("📡 AGUARDANDO DADOS METEOROLÓGICOS NO SERIAL MONITOR");
+  Serial.println("Formato: CHUVA:XX.X;TEMP_MAX:XX.X;TEMP_MIN:XX.X;CONDICAO:texto");
 }
 
-// =================== LOOP ===================
 void loop() {
+  verificarDadosMeteorologicos();
+  
   updateButton(btnN);
   updateButton(btnP);
   updateButton(btnK);

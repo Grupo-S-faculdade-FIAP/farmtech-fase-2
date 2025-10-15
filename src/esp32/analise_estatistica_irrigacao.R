@@ -18,16 +18,13 @@ gerar_dados_simulados <- function(n_amostras = 100) {
     potassio = sample(c(0, 1), n_amostras, replace = TRUE, prob = c(0.2, 0.8)),
     irrigacao_ativada = rep(0, n_amostras)
   )
-
-  # Limitar valores aos ranges realistas
+  
   dados$umidade <- pmax(0, pmin(100, dados$umidade))
   dados$pH <- pmax(0, pmin(14, dados$pH))
   dados$temperatura <- pmax(5, pmin(40, dados$temperatura))
-
+  
   return(dados)
 }
-
-# Função para analisar se deve irrigar baseado em estatísticas
 analisar_decisao_irrigacao <- function(dados) {
   cat("Análise Estatística para Decisão de Irrigação\n")
   cat("===========================================\n")
@@ -170,5 +167,7 @@ main <- function() {
   cat("\nAnálise concluída!\n")
 }
 
-# Executar análise
-main()
+# Executar análise apenas se executado diretamente
+if (!exists("TEST_MODE")) {
+  main()
+}
