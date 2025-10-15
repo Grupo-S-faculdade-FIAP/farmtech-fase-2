@@ -2,7 +2,15 @@
 
 **FIAP Fase 2** | ESP32 + WeatherAPI + R Analytics
 
-📂 **GitHub Repository**: https://github.com/Grupo-S-faculdade-FIAP/farmtech-fase-2
+📂 **GitHub Repository**: https://github.com/Grupo-S-faculdade-FIAP/farmtech-fase-2  
+🎥 **Vídeo Demonstração**: https://youtu.be/-l8X7jZYIkA
+
+## 👥 **Integrantes do Grupo**
+- **Caroline Correa**
+- **Tiago Lindgren**
+- **Marcelo Mizuta**
+- **Gabriel Marques**
+- **Vinicius Vinha**
 
 ---
 
@@ -479,8 +487,16 @@ Rscript analise_estatistica_irrigacao.R
 ## 📁 **Links do Projeto**
 
 - **🐙 GitHub Repository**: https://github.com/Grupo-S-faculdade-FIAP/farmtech-fase-2
+- **🎥 Vídeo Demonstração**: https://youtu.be/-l8X7jZYIkA
 - **🔗 ESP32 Simulator**: https://wokwi.com/projects/444657222477927425
-- **🏢 FarmTech Solutions**: Grupo S - FIAP 2025
+
+## 👥 **Equipe FarmTech Solutions**
+**Grupo S - FIAP 2025**
+- Caroline Correa
+- Tiago Lindgren  
+- Marcelo Mizuta
+- Gabriel Marques
+- Vinicius Vinha
 
 ---
 
