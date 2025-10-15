@@ -1,24 +1,20 @@
 #!/usr/bin/env Rscript
-# FarmTech Solutions - Testes para Análise Estatística
-# Script de testes unitários para validar funções de análise
 
 cat("FarmTech Solutions - Testes de Análise Estatística\n")
 cat("===================================================\n\n")
 
-# Configurar CRAN mirror
 r <- getOption("repos")
 r["CRAN"] <- "https://cloud.r-project.org/"
 options(repos = r)
 
-# Carregar script principal (source)
-source_path <- file.path(dirname(sys.frame(1)$ofile), "../esp32/analise_estatistica_irrigacao.R")
+source_path <- "../esp32/analise_estatistica_irrigacao.R"
+if (file.exists(source_path)) {
+  source(source_path)
+}
 
-# Contador de testes
 testes_passados <- 0
 testes_falhados <- 0
 total_testes <- 0
-
-# Função auxiliar para executar testes
 executar_teste <- function(nome_teste, funcao_teste) {
   total_testes <<- total_testes + 1
   cat(sprintf("\n[Teste %d] %s\n", total_testes, nome_teste))
@@ -46,16 +42,12 @@ executar_teste <- function(nome_teste, funcao_teste) {
 executar_teste("Geração de dados simulados", function() {
   dados <- gerar_dados_simulados(50)
   
-  # Verificar estrutura
   stopifnot(is.data.frame(dados))
   stopifnot(nrow(dados) == 50)
   
-  # Verificar colunas necessárias
   colunas_esperadas <- c("timestamp", "umidade", "pH", "temperatura", 
                         "nitrogenio", "fosforo", "potassio", "irrigacao_ativada")
   stopifnot(all(colunas_esperadas %in% names(dados)))
-  
-  # Verificar ranges de valores
   stopifnot(all(dados$umidade >= 0 & dados$umidade <= 100))
   stopifnot(all(dados$pH >= 0 & dados$pH <= 14))
   stopifnot(all(dados$temperatura >= 5 & dados$temperatura <= 40))
@@ -70,24 +62,20 @@ executar_teste("Geração de dados simulados", function() {
 
 # Teste 2: Análise de decisão de irrigação
 executar_teste("Análise de decisão de irrigação", function() {
-  # Criar dados de teste com umidade baixa
   dados_teste <- data.frame(
     timestamp = Sys.time() + seq(0, 49) * 3600,
-    umidade = rep(50, 50),  # Umidade baixa (< 60%)
-    pH = rep(6.5, 50),
-    temperatura = rep(25, 50),
+    umidade = runif(50, 45, 55),
+    pH = runif(50, 6.0, 7.0),
+    temperatura = runif(50, 20, 30),
     nitrogenio = rep(1, 50),
     fosforo = rep(1, 50),
     potassio = rep(1, 50),
     irrigacao_ativada = rep(0, 50)
   )
   
-  # Capturar saída
   output <- capture.output({
     resultado <- analisar_decisao_irrigacao(dados_teste)
   })
-  
-  # Verificar estrutura do resultado
   stopifnot(is.list(resultado))
   stopifnot("deve_irrigar" %in% names(resultado))
   stopifnot("motivos" %in% names(resultado))
@@ -102,13 +90,13 @@ executar_teste("Análise de decisão de irrigação", function() {
 
 # Teste 3: Análise com condições ideais
 executar_teste("Análise com condições ideais (não deve irrigar)", function() {
-  # Criar dados com todas as condições ideais
+  # Criar dados com todas as condições ideais e variabilidade
   dados_ideais <- data.frame(
     timestamp = Sys.time() + seq(0, 49) * 3600,
-    umidade = rep(70, 50),  # Umidade ideal
-    pH = rep(6.5, 50),      # pH ideal
-    temperatura = rep(25, 50),  # Temperatura ideal
-    nitrogenio = rep(1, 50),    # Nutrientes OK
+    umidade = runif(50, 68, 72),  # Umidade ideal com variação
+    pH = runif(50, 6.3, 6.7),     # pH ideal com variação
+    temperatura = runif(50, 23, 27), # Temperatura ideal com variação
+    nitrogenio = rep(1, 50),      # Nutrientes OK
     fosforo = rep(1, 50),
     potassio = rep(1, 50),
     irrigacao_ativada = rep(0, 50)
@@ -146,15 +134,15 @@ executar_teste("Geração de relatório de tendência", function() {
 
 # Teste 5: Validação de nutrientes
 executar_teste("Análise de nutrientes insuficientes", function() {
-  # Dados com nutrientes faltando
+  # Dados com nutrientes faltando e variabilidade
   dados_sem_npk <- data.frame(
     timestamp = Sys.time() + seq(0, 49) * 3600,
-    umidade = rep(70, 50),
-    pH = rep(6.5, 50),
-    temperatura = rep(25, 50),
-    nitrogenio = rep(0, 50),  # Sem N
-    fosforo = rep(0, 50),     # Sem P
-    potassio = rep(0, 50),    # Sem K
+    umidade = runif(50, 68, 72),  # Umidade boa com variação
+    pH = runif(50, 6.3, 6.7),     # pH bom com variação
+    temperatura = runif(50, 23, 27), # Temperatura boa com variação
+    nitrogenio = rep(0, 50),      # Sem N
+    fosforo = rep(0, 50),         # Sem P
+    potassio = rep(0, 50),        # Sem K
     irrigacao_ativada = rep(0, 50)
   )
   
