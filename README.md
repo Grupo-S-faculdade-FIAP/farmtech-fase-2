@@ -62,7 +62,12 @@ LED Status             → GPIO 2
 1. Abra o arquivo `src/esp32/sistema_irrigacao_inteligente.ino`
 2. Cole o código no editor do **Wokwi**
 3. Clique em **"Start Simulation"**
-4. Observe o sistema funcionando automaticamente
+4. Abra o **Serial Monitor** - você verá a mensagem:
+   ```
+   📡 AGUARDANDO DADOS METEOROLÓGICOS NO SERIAL MONITOR
+   Formato: CHUVA:XX.X;TEMP_MAX:XX.X;TEMP_MIN:XX.X;CONDICAO:texto
+   ```
+5. Observe o sistema funcionando automaticamente
 
 ### Passo 2: Teste dos Sensores
 - **Botões NPK**: Pressione para simular nutrientes presentes/ausentes
@@ -81,6 +86,9 @@ Rscript src/esp32/api_meteorologica_independente.R
 # Resultado: linha formatada como:
 # CHUVA:75.5;TEMP_MAX:28;TEMP_MIN:18;CONDICAO:Chuvoso
 ```
+
+4. **Cole a linha no Serial Monitor do Wokwi** e pressione Enter
+5. **Observe o ESP32 processar** os dados automaticamente
 
 ### Passo 4: Análise Estatística (Opcional)
 ```bash

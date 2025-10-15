@@ -104,14 +104,50 @@ Implementa um sistema de debounce para os botões NPK:
    - Temperatura e umidade
    - Status da irrigação
 
-## 5. Protocolo de Inicialização
+## 5. Integração Meteorológica
+
+### 5.1 Funcionalidade
+O sistema possui integração avançada com dados meteorológicos para otimizar o uso de recursos hídricos.
+
+### 5.2 Recebimento de Dados via Serial Monitor
+O sistema monitora continuamente o Serial Monitor aguardando dados meteorológicos no formato:
+```
+CHUVA:XX.X;TEMP_MAX:XX.X;TEMP_MIN:XX.X;CONDICAO:texto
+```
+
+### 5.3 Processamento Automático
+Quando dados meteorológicos são recebidos:
+1. **Parsing automático** dos valores de chuva, temperatura e condição
+2. **Validação** e armazenamento dos dados
+3. **Feedback visual** com emojis e formatação
+4. **Integração na lógica de irrigação**
+
+### 5.4 Impacto na Decisão de Irrigação
+- **Chance de chuva > 50%**: Irrigação **SUSPENSA** automaticamente
+- **Chance de chuva ≤ 50%**: Irrigação segue lógica normal (NPK + pH + umidade)
+- **Mensagens informativas** no Serial Monitor indicando o status
+
+### 5.5 Exemplo de Uso
+```cpp
+// Entrada no Serial Monitor:
+CHUVA:87.0;TEMP_MAX:32.7;TEMP_MIN:15.8;CONDICAO:Partly cloudy
+
+// Saída do sistema:
+📡 Dados meteorológicos recebidos!
+🌧️ Chance de chuva: 87.0%
+🌡️ Temperatura: 15.8°C - 32.7°C  
+☁️ Condição: Partly cloudy
+💧 IRRIGAÇÃO SUSPENSA (alta chance de chuva)
+```
+
+## 6. Protocolo de Inicialização
 1. Configuração da comunicação Serial (115200 baud)
 2. Inicialização dos pinos com estados padrão
 3. Configuração do DHT22 com warm-up de 2 segundos
 4. Verificação do intervalo mínimo do sensor
 5. Impressão das informações de mapeamento de pinos
 
-## 6. Ciclo Principal de Operação
+## 7. Ciclo Principal de Operação
 1. **Leitura e debounce** dos botões NPK com feedback
 2. **Leitura dos sensores** LDR com conversão para pH
 3. **Ajuste do pH** baseado nos níveis de NPK
@@ -120,12 +156,23 @@ Implementa um sistema de debounce para os botões NPK:
 6. **Geração de logs** formatados e organizados
 7. **Pequeno delay** para estabilidade do sistema
 
-## 7. Lógica de Decisão de Irrigação
+## 8. Lógica de Decisão de Irrigação
 
-### 7.1 Condições para Ativar Irrigação:
-- **Umidade baixa**: < 45%
-- **pH inadequado**: < 6.0 ou > 7.0  
-- **NPK insuficiente**: Ausência de qualquer nutriente (N, P ou K)
+### 8.1 Prioridade de Decisão:
+1. **Primeira verificação**: Dados meteorológicos
+   - Se chance de chuva > 50% → **SUSPENDER irrigação**
+   - Se não há dados ou chance ≤ 50% → Continuar análise
+
+2. **Segunda verificação**: Condições locais
+   - **Umidade baixa**: < 45%
+   - **pH adequado**: Entre 5.5 e 7.5
+   - **NPK presente**: Pelo menos um nutriente disponível
+
+### 8.2 Condições para Ativar Irrigação:
+- ✅ **Dados meteorológicos**: Chance de chuva ≤ 50% (ou sem dados)
+- ✅ **Umidade baixa**: < 45%
+- ✅ **pH adequado**: Entre 5.5-7.5
+- ✅ **NPK disponível**: Pelo menos N, P ou K presente
 
 ### 7.2 Feedback do Sistema:
 ```
@@ -133,13 +180,13 @@ Implementa um sistema de debounce para os botões NPK:
 Motivos: Umidade baixa (42.5%) | pH inadequado (4.5) | NPK insuficiente (✗ P✓ K✓)
 ```
 
-## 8. Tratamento de Erros
+## 9. Tratamento de Erros
 - **Retry imediato** para falhas do DHT22
 - **Reconfiguração automática** após 5 falhas consecutivas
 - **Validação de dados** antes do uso
 - **Sistema de contagem** de falhas com logging
 
-## 9. Interface de Usuário
+## 10. Interface de Usuário
 
 ### 9.1 Monitor Serial
 - **Baud rate**: 115200
@@ -183,15 +230,19 @@ Nitrogênio: ✓ | Fósforo: ✓ | Potássio: ✗
 - Observe bomba ligar automaticamente
 
 ### 11.2 Cenário 2: Irrigação por pH
-- Ajuste LDR para pH fora da faixa 6.0-7.0
+- Ajuste LDR para pH fora da faixa 5.5-7.5
 - Sistema ativa irrigação
 
 ### 11.3 Cenário 3: Irrigação por NPK
 - Pressione/solte botões N, P, K
 - Sistema responde à ausência de nutrientes
 
-### 11.4 Cenário 4: Teste Integrado
-- Combine condições (umidade baixa + pH ruim + NPK ausente)
+### 11.4 Cenário 4: Dados Meteorológicos
+- Envie via Serial: `CHUVA:75.0;TEMP_MAX:32.5;TEMP_MIN:18.2;CONDICAO:Chuvoso`
+- Sistema suspende irrigação (chuva > 50%)
+
+### 11.5 Cenário 5: Teste Integrado
+- Combine condições (umidade baixa + pH adequado + NPK presente + chuva ≤ 50%)
 - Observe resposta completa do sistema
 
 ## 12. Manutenção e Configuração
@@ -199,8 +250,9 @@ Nitrogênio: ✓ | Fósforo: ✓ | Potássio: ✗
 ### 12.1 Principais Pontos de Configuração:
 ```cpp
 const float HUM_THRESHOLD = 45.0;       // Limiar de umidade
-const float PH_MIN = 6.0;               // pH mínimo
-const float PH_MAX = 7.0;               // pH máximo
+const float PH_MIN = 5.5;               // pH mínimo
+const float PH_MAX = 7.5;               // pH máximo
+const float CHANCE_CHUVA_LIMITE = 50.0; // Limite para suspender irrigação
 const uint32_t DEBOUNCE_MS = 25;        // Debounce botões
 const bool RELAY_ACTIVE_HIGH = true;    // Polaridade do relé
 ```
